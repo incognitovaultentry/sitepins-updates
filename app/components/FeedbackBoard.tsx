@@ -235,13 +235,13 @@ export default function FeedbackBoard() {
 
       {/* Kanban */}
       {!allInitialized ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {COLUMNS.map(col => (
             <div key={col.id} className="bg-slate-100 dark:bg-slate-800 rounded-2xl h-64 animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
           {COLUMNS.map(col => {
             const state = columns[col.id]
             return (
