@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import FeedbackCard from './FeedbackCard'
 import FeedbackModal from './FeedbackModal'
 import FeedbackDetailModal from './FeedbackDetailModal'
@@ -15,48 +15,132 @@ interface Feedback {
   created_at: string
 }
 
+interface ColumnState {
+  items: Feedback[]
+  offset: number
+  hasMore: boolean
+  loading: boolean
+  initialized: boolean
+}
+
 const COLUMNS = [
-  { id: 'open', label: 'Open', emoji: '📬', color: 'border-t-blue-400' },
-  { id: 'planned', label: 'Planned', emoji: '🗓️', color: 'border-t-purple-400' },
-  { id: 'building', label: 'Building Now', emoji: '🔨', color: 'border-t-orange-400' },
-  { id: 'completed', label: 'Completed', emoji: '✅', color: 'border-t-green-400' },
+  { id: 'open',      label: 'Open',         emoji: '📬', color: 'border-t-blue-400' },
+  { id: 'planned',   label: 'Planned',       emoji: '🗓️', color: 'border-t-purple-400' },
+  { id: 'building',  label: 'Building Now',  emoji: '🔨', color: 'border-t-orange-400' },
+  { id: 'completed', label: 'Completed',     emoji: '✅', color: 'border-t-green-400' },
 ] as const
 
+const PAGE_SIZE = 10
 const LOCALSTORAGE_KEY = 'sitepins-upvoted'
 
+const defaultColumnState = (): ColumnState => ({
+  items: [], offset: 0, hasMore: true, loading: false, initialized: false,
+})
+
 export default function FeedbackBoard() {
-  const [feedback, setFeedback] = useState<Feedback[]>([])
-  const [loading, setLoading] = useState(true)
+  const [columns, setColumns] = useState<Record<string, ColumnState>>({
+    open: defaultColumnState(),
+    planned: defaultColumnState(),
+    building: defaultColumnState(),
+    completed: defaultColumnState(),
+  })
   const [showModal, setShowModal] = useState(false)
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null)
   const [upvoted, setUpvoted] = useState<Set<number>>(new Set())
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [dbSetupRequired, setDbSetupRequired] = useState(false)
 
+  const sentinelRefs = useRef<Record<string, HTMLDivElement | null>>({})
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LOCALSTORAGE_KEY)
-      if (stored) {
-        setUpvoted(new Set(JSON.parse(stored) as number[]))
-      }
+      if (stored) setUpvoted(new Set(JSON.parse(stored) as number[]))
     } catch {}
   }, [])
 
-  const fetchFeedback = useCallback(async () => {
+  const fetchMore = useCallback(async (status: string) => {
+    setColumns(prev => {
+      const col = prev[status]
+      if (col.loading || !col.hasMore) return prev
+      return { ...prev, [status]: { ...col, loading: true } }
+    })
+
     try {
-      const res = await fetch('/api/feedback')
-      if (res.ok) {
-        const data = await res.json() as { feedback: Feedback[]; setup_required?: boolean }
-        setFeedback(data.feedback ?? [])
-        if (data.setup_required) setDbSetupRequired(true)
+      const col = columns[status]
+      const res = await fetch(`/api/feedback?status=${status}&limit=${PAGE_SIZE}&offset=${col.offset}`)
+      if (!res.ok) return
+
+      const data = await res.json() as {
+        feedback: Feedback[]
+        hasMore: boolean
+        setup_required?: boolean
       }
-    } catch {}
-    setLoading(false)
+
+      if (data.setup_required) setDbSetupRequired(true)
+
+      setColumns(prev => {
+        const existing = prev[status]
+        const existingIds = new Set(existing.items.map(i => i.id))
+        const newItems = (data.feedback ?? []).filter(i => !existingIds.has(i.id))
+        return {
+          ...prev,
+          [status]: {
+            items: [...existing.items, ...newItems],
+            offset: existing.offset + (data.feedback?.length ?? 0),
+            hasMore: data.hasMore,
+            loading: false,
+            initialized: true,
+          },
+        }
+      })
+    } catch {
+      setColumns(prev => ({
+        ...prev,
+        [status]: { ...prev[status], loading: false, initialized: true },
+      }))
+    }
+  }, [columns])
+
+  // Initial load for all columns
+  useEffect(() => {
+    COLUMNS.forEach(col => {
+      if (!columns[col.id].initialized && !columns[col.id].loading) {
+        fetchMore(col.id)
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // IntersectionObserver for each column sentinel
   useEffect(() => {
-    fetchFeedback()
-  }, [fetchFeedback])
+    const observers: IntersectionObserver[] = []
+
+    COLUMNS.forEach(col => {
+      const sentinel = sentinelRefs.current[col.id]
+      if (!sentinel) return
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            setColumns(prev => {
+              const c = prev[col.id]
+              if (!c.loading && c.hasMore && c.initialized) {
+                fetchMore(col.id)
+              }
+              return prev
+            })
+          }
+        },
+        { threshold: 0.1 }
+      )
+      observer.observe(sentinel)
+      observers.push(observer)
+    })
+
+    return () => observers.forEach(o => o.disconnect())
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columns])
 
   const handleUpvote = useCallback(async (id: number) => {
     try {
@@ -64,9 +148,18 @@ export default function FeedbackBoard() {
       const newUpvoted = new Set(upvoted).add(id)
       setUpvoted(newUpvoted)
       localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(Array.from(newUpvoted)))
-      // Update count in local state
-      setFeedback(prev => prev.map(f => f.id === id ? { ...f, upvotes: f.upvotes + 1 } : f))
-      // Update selectedFeedback if open
+      setColumns(prev => {
+        const updated = { ...prev }
+        for (const status of Object.keys(updated)) {
+          updated[status] = {
+            ...updated[status],
+            items: updated[status].items.map(f =>
+              f.id === id ? { ...f, upvotes: f.upvotes + 1 } : f
+            ),
+          }
+        }
+        return updated
+      })
       setSelectedFeedback(prev => prev?.id === id ? { ...prev, upvotes: prev.upvotes + 1 } : prev)
     } catch {}
   }, [upvoted])
@@ -80,17 +173,16 @@ export default function FeedbackBoard() {
     if (!res.ok) throw new Error('Failed to submit')
     setSubmitSuccess(true)
     setTimeout(() => setSubmitSuccess(false), 4000)
-    await fetchFeedback()
+    // Refresh open column
+    setColumns(prev => ({ ...prev, open: defaultColumnState() }))
+    setTimeout(() => fetchMore('open'), 100)
   }
 
-  const byStatus = (status: string) =>
-    feedback
-      .filter(f => f.status === status)
-      .sort((a, b) => b.upvotes - a.upvotes)
+  const allInitialized = COLUMNS.every(c => columns[c.id].initialized)
 
   return (
     <div>
-      {/* Page header */}
+      {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Feedback Board</h1>
@@ -109,37 +201,31 @@ export default function FeedbackBoard() {
         </button>
       </div>
 
-      {/* DB setup banner */}
       {dbSetupRequired && (
         <div className="mb-6 px-4 py-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Database setup pending — feedback will appear once D1 is configured.
         </div>
       )}
 
-      {/* Success banner */}
       {submitSuccess && (
         <div className="mb-6 px-4 py-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-xl text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
           Thanks! Your feedback has been submitted.
         </div>
       )}
 
-      {/* Kanban grid */}
-      {loading ? (
+      {/* Kanban */}
+      {!allInitialized ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {COLUMNS.map(col => (
             <div key={col.id} className="bg-slate-100 dark:bg-slate-800 rounded-2xl h-64 animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
           {COLUMNS.map(col => {
-            const items = byStatus(col.id)
+            const state = columns[col.id]
             return (
               <div key={col.id} className={`bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-t-4 ${col.color} overflow-hidden`}>
                 <div className="px-4 py-3 flex items-center justify-between">
@@ -148,15 +234,15 @@ export default function FeedbackBoard() {
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{col.label}</span>
                   </div>
                   <span className="text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full px-2 py-0.5">
-                    {items.length}
+                    {state.items.length}{state.hasMore ? '+' : ''}
                   </span>
                 </div>
 
-                <div className="px-3 pb-3 space-y-2 kanban-col">
-                  {items.length === 0 ? (
+                <div className="px-3 pb-3 space-y-2 max-h-[600px] overflow-y-auto">
+                  {state.items.length === 0 && !state.loading ? (
                     <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8">No items yet</p>
                   ) : (
-                    items.map(item => (
+                    state.items.map(item => (
                       <FeedbackCard
                         key={item.id}
                         id={item.id}
@@ -170,6 +256,22 @@ export default function FeedbackBoard() {
                       />
                     ))
                   )}
+
+                  {/* Sentinel for infinite scroll */}
+                  {state.hasMore && (
+                    <div
+                      ref={el => { sentinelRefs.current[col.id] = el }}
+                      className="py-2 flex justify-center"
+                    >
+                      {state.loading && (
+                        <div className="flex gap-1">
+                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                          <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -177,15 +279,10 @@ export default function FeedbackBoard() {
         </div>
       )}
 
-      {/* Submit modal */}
       {showModal && (
-        <FeedbackModal
-          onClose={() => setShowModal(false)}
-          onSubmit={handleSubmit}
-        />
+        <FeedbackModal onClose={() => setShowModal(false)} onSubmit={handleSubmit} />
       )}
 
-      {/* Detail modal */}
       {selectedFeedback && (
         <FeedbackDetailModal
           feedback={selectedFeedback}

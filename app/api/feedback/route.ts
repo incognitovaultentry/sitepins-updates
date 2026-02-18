@@ -53,18 +53,44 @@ function getDB(): D1Database | null {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const db = getDB()
   if (!db) {
     return NextResponse.json({ feedback: [], setup_required: true }, { status: 200 })
   }
 
-  try {
-    const result = await db.prepare(
-      'SELECT id, title, details, type, status, upvotes, created_at FROM feedback ORDER BY created_at DESC'
-    ).all<FeedbackRow>()
+  const { searchParams } = new URL(request.url)
+  const status = searchParams.get('status') // optional filter by status
+  const limit = Math.min(parseInt(searchParams.get('limit') ?? '10'), 50)
+  const offset = parseInt(searchParams.get('offset') ?? '0')
 
-    return NextResponse.json({ feedback: result.results ?? [] })
+  try {
+    let countQuery: string
+    let dataQuery: string
+
+    if (status) {
+      countQuery = `SELECT COUNT(*) as total FROM feedback WHERE status = '${status}'`
+      dataQuery = `SELECT id, title, details, type, status, upvotes, created_at FROM feedback WHERE status = '${status}' ORDER BY upvotes DESC, created_at DESC LIMIT ${limit} OFFSET ${offset}`
+    } else {
+      countQuery = `SELECT COUNT(*) as total FROM feedback`
+      dataQuery = `SELECT id, title, details, type, status, upvotes, created_at FROM feedback ORDER BY upvotes DESC, created_at DESC LIMIT ${limit} OFFSET ${offset}`
+    }
+
+    const [countResult, dataResult] = await Promise.all([
+      db.prepare(countQuery).first<{ total: number }>(),
+      db.prepare(dataQuery).all<FeedbackRow>(),
+    ])
+
+    const total = countResult?.total ?? 0
+    const feedback = dataResult.results ?? []
+
+    return NextResponse.json({
+      feedback,
+      total,
+      hasMore: offset + feedback.length < total,
+      offset,
+      limit,
+    })
   } catch (err) {
     console.error('GET /api/feedback error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -95,7 +121,6 @@ export async function POST(request: NextRequest) {
       'INSERT INTO feedback (title, details, type, status, upvotes, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING id'
     ).bind(safeTitle, safeDetails, safeType, 'open', 0, createdAt).first<{ id: number }>()
 
-    // Fire-and-forget email notification
     sendFeedbackEmail(safeType, safeTitle, safeDetails, createdAt).catch(console.error)
 
     return NextResponse.json({ id: result?.id, success: true }, { status: 201 })
