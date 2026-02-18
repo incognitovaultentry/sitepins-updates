@@ -28,14 +28,6 @@ export default function RootLayout({
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
-        <footer className="border-t border-slate-200 dark:border-slate-800 mt-16 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
-          <p>
-            Built with ❤️ by{' '}
-            <a href="https://sitepins.com" className="underline hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
-              Sitepins
-            </a>
-          </p>
-        </footer>
       </body>
     </html>
   )

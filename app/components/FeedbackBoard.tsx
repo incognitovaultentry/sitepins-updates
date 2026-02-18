@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import FeedbackCard from './FeedbackCard'
 import FeedbackModal from './FeedbackModal'
+import FeedbackDetailModal from './FeedbackDetailModal'
 
 interface Feedback {
   id: number
@@ -27,11 +28,11 @@ export default function FeedbackBoard() {
   const [feedback, setFeedback] = useState<Feedback[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null)
   const [upvoted, setUpvoted] = useState<Set<number>>(new Set())
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [dbSetupRequired, setDbSetupRequired] = useState(false)
 
-  // Load upvoted set from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem(LOCALSTORAGE_KEY)
@@ -63,6 +64,10 @@ export default function FeedbackBoard() {
       const newUpvoted = new Set(upvoted).add(id)
       setUpvoted(newUpvoted)
       localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(Array.from(newUpvoted)))
+      // Update count in local state
+      setFeedback(prev => prev.map(f => f.id === id ? { ...f, upvotes: f.upvotes + 1 } : f))
+      // Update selectedFeedback if open
+      setSelectedFeedback(prev => prev?.id === id ? { ...prev, upvotes: prev.upvotes + 1 } : prev)
     } catch {}
   }, [upvoted])
 
@@ -104,7 +109,7 @@ export default function FeedbackBoard() {
         </button>
       </div>
 
-      {/* DB setup required banner */}
+      {/* DB setup banner */}
       {dbSetupRequired && (
         <div className="mb-6 px-4 py-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl text-sm text-amber-700 dark:text-amber-400 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -137,7 +142,6 @@ export default function FeedbackBoard() {
             const items = byStatus(col.id)
             return (
               <div key={col.id} className={`bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-t-4 ${col.color} overflow-hidden`}>
-                {/* Column header */}
                 <div className="px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span>{col.emoji}</span>
@@ -148,7 +152,6 @@ export default function FeedbackBoard() {
                   </span>
                 </div>
 
-                {/* Cards */}
                 <div className="px-3 pb-3 space-y-2 kanban-col">
                   {items.length === 0 ? (
                     <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8">No items yet</p>
@@ -163,6 +166,7 @@ export default function FeedbackBoard() {
                         upvotes={item.upvotes}
                         hasUpvoted={upvoted.has(item.id)}
                         onUpvote={handleUpvote}
+                        onClick={() => setSelectedFeedback(item)}
                       />
                     ))
                   )}
@@ -173,11 +177,21 @@ export default function FeedbackBoard() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Submit modal */}
       {showModal && (
         <FeedbackModal
           onClose={() => setShowModal(false)}
           onSubmit={handleSubmit}
+        />
+      )}
+
+      {/* Detail modal */}
+      {selectedFeedback && (
+        <FeedbackDetailModal
+          feedback={selectedFeedback}
+          hasUpvoted={upvoted.has(selectedFeedback.id)}
+          onClose={() => setSelectedFeedback(null)}
+          onUpvote={handleUpvote}
         />
       )}
     </div>

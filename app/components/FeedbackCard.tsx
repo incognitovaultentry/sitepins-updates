@@ -10,6 +10,7 @@ interface FeedbackCardProps {
   upvotes: number
   hasUpvoted: boolean
   onUpvote: (id: number) => void
+  onClick: () => void
 }
 
 const TYPE_STYLES: Record<string, string> = {
@@ -19,12 +20,13 @@ const TYPE_STYLES: Record<string, string> = {
   'Other': 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
 }
 
-export default function FeedbackCard({ id, title, details, type, upvotes, hasUpvoted, onUpvote }: FeedbackCardProps) {
+export default function FeedbackCard({ id, title, details, type, upvotes, hasUpvoted, onUpvote, onClick }: FeedbackCardProps) {
   const [optimisticCount, setOptimisticCount] = useState(upvotes)
   const [voted, setVoted] = useState(hasUpvoted)
   const [animating, setAnimating] = useState(false)
 
-  const handleUpvote = async () => {
+  const handleUpvote = async (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (voted) return
     setVoted(true)
     setOptimisticCount(prev => prev + 1)
@@ -36,7 +38,10 @@ export default function FeedbackCard({ id, title, details, type, upvotes, hasUpv
   const typeStyle = TYPE_STYLES[type] ?? TYPE_STYLES['Other']
 
   return (
-    <div className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all">
+    <div
+      className="group bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-sm transition-all cursor-pointer"
+      onClick={onClick}
+    >
       {/* Type badge */}
       <div className="mb-2">
         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${typeStyle}`}>
@@ -49,7 +54,7 @@ export default function FeedbackCard({ id, title, details, type, upvotes, hasUpv
         {title}
       </h3>
 
-      {/* Details */}
+      {/* Details preview */}
       {details && (
         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 mb-3">
           {details}

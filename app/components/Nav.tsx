@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 
 export default function Nav() {
   const pathname = usePathname()
@@ -11,11 +12,16 @@ export default function Nav() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <a href="https://sitepins.com" className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100 hover:opacity-80 transition-opacity">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-blue-500">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="currentColor"/>
-            </svg>
-            Sitepins
+          <a href="https://sitepins.com" className="flex items-center hover:opacity-80 transition-opacity">
+            <div className="bg-slate-900 dark:bg-transparent px-2 py-1 rounded-lg">
+              <Image
+                src="/logo.svg"
+                alt="Sitepins"
+                width={86}
+                height={27}
+                priority
+              />
+            </div>
           </a>
 
           {/* Nav tabs */}
