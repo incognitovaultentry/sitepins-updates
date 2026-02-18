@@ -34,8 +34,8 @@ export default function Nav() {
             </div>
           </a>
 
-          {/* Desktop nav */}
-          <nav className="hidden sm:flex items-center gap-1">
+          {/* Internal nav — always visible */}
+          <nav className="flex items-center gap-1">
             <Link href="/" className={navLinkClass(pathname === '/')}>Roadmap</Link>
             <Link href="/changelog" className={navLinkClass(pathname === '/changelog')}>Changelog</Link>
           </nav>
@@ -52,7 +52,7 @@ export default function Nav() {
             </a>
           </nav>
 
-          {/* Mobile hamburger */}
+          {/* Mobile hamburger — Docs + Contact only */}
           <button
             className="sm:hidden p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             onClick={() => setOpen(o => !o)}
@@ -74,14 +74,6 @@ export default function Nav() {
       {/* Mobile menu */}
       {open && (
         <div className="sm:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3 space-y-1">
-          <Link href="/" onClick={() => setOpen(false)}
-            className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${navLinkClass(pathname === '/')}`}>
-            Roadmap
-          </Link>
-          <Link href="/changelog" onClick={() => setOpen(false)}
-            className={`block px-3 py-2 rounded-lg text-sm font-medium transition-colors ${navLinkClass(pathname === '/changelog')}`}>
-            Changelog
-          </Link>
           <a href="https://docs.sitepins.com" target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}
             className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             Docs <ExternalIcon />
