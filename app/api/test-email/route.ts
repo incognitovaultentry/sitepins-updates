@@ -7,7 +7,7 @@ export async function GET() {
   let apiKey = process.env.RESEND_API_KEY ?? ''
   try {
     const ctx = getRequestContext()
-    const ctxKey = (ctx.env as Record<string, string>).RESEND_API_KEY
+    const ctxKey = (ctx.env as unknown as Record<string, string>).RESEND_API_KEY
     if (ctxKey) apiKey = ctxKey
   } catch {}
 

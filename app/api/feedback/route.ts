@@ -13,8 +13,19 @@ interface FeedbackRow {
   created_at: string
 }
 
+function getResendKey(): string {
+  // Try process.env first, then Cloudflare's ctx.env for secrets
+  if (process.env.RESEND_API_KEY) return process.env.RESEND_API_KEY
+  try {
+    const ctx = getRequestContext()
+    return (ctx.env as unknown as Record<string, string>).RESEND_API_KEY ?? ''
+  } catch {
+    return ''
+  }
+}
+
 async function sendFeedbackEmail(type: string, title: string, details: string, createdAt: string) {
-  const apiKey = (process.env.RESEND_API_KEY as string) ?? ''
+  const apiKey = getResendKey()
   if (!apiKey) return
 
   const body = `
