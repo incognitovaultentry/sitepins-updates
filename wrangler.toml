@@ -1,0 +1,23 @@
+name = "sitepins-updates"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+pages_build_output_dir = ".vercel/output/static"
+
+# ⚠️  D1 DATABASE SETUP REQUIRED (manual step):
+# 1. Go to https://dash.cloudflare.com > Workers & Pages > D1
+# 2. Click "Create database" and name it: sitepins-updates-db
+# 3. Copy the database UUID and paste it below
+# 4. Uncomment the [[d1_databases]] block
+# 5. Run: npx wrangler d1 execute sitepins-updates-db --file=migrations/0001_init.sql --remote
+# 6. In Cloudflare Pages dashboard (sitepins-updates project > Settings > Functions):
+#    Add D1 binding: Variable name = DB, Database = sitepins-updates-db
+# 7. Re-deploy: npm run pages:build && npx wrangler pages deploy .vercel/output/static --project-name=sitepins-updates
+
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "sitepins-updates-db"
+# database_id = "REPLACE_WITH_REAL_UUID"
+
+[vars]
+# RESEND_API_KEY is set as a secret in the Cloudflare Pages dashboard
