@@ -1,8 +1,0 @@
-{
-  "date": "2026-01-12",
-  "title": "Deploy to Vercel",
-  "tags": [
-    "Feature"
-  ],
-  "details": "With Sitepins, you can now deploy your site directly to Vercel 🚀\n\n- Login or Sign Up for an account on Vercel\n- Easily deploy your site with just one click\n\nEvery time you make a content change, Git automatically triggers a rebuild and Vercel updates your site live — no manual steps needed."
-}

@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import matter from 'gray-matter'
 import ChangelogList from '../components/ChangelogList'
 
 export interface ChangelogEntry {
@@ -13,14 +14,22 @@ export interface ChangelogEntry {
 function getChangelogEntries(): ChangelogEntry[] {
   const dir = path.join(process.cwd(), 'changelog')
   if (!fs.existsSync(dir)) return []
+
   const files = fs.readdirSync(dir)
-    .filter(f => f.endsWith('.json'))
+    .filter(f => f.endsWith('.md'))
     .sort()
     .reverse()
 
   return files.map(file => {
-    const content = fs.readFileSync(path.join(dir, file), 'utf-8')
-    return JSON.parse(content) as ChangelogEntry
+    const raw = fs.readFileSync(path.join(dir, file), 'utf-8')
+    const { data, content } = matter(raw)
+    return {
+      date: data.date,
+      title: data.title,
+      tags: data.tags ?? [],
+      image: data.image,
+      details: content.trim(),
+    } as ChangelogEntry
   })
 }
 
