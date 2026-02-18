@@ -46,6 +46,22 @@ export default function Nav() {
             >
               Changelog
             </Link>
+            <a
+              href="https://docs.sitepins.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Docs
+            </a>
+            <a
+              href="https://sitepins.com/contact"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              Contact
+            </a>
           </nav>
         </div>
       </div>
