@@ -36,7 +36,7 @@ Sitepins Updates
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: 'Sitepins Feedback <onboarding@resend.dev>',
+      from: 'Sitepins Feedback <feedback@sitepins.com>',
       to: ['hi@sitepins.com'],
       subject: `[Sitepins Feedback] New ${type}: ${title}`,
       text: body,
