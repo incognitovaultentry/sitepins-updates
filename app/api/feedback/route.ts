@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
         resendKey = (ctx.env as unknown as Record<string, string>).RESEND_API_KEY ?? ''
       } catch {}
     }
-    sendFeedbackEmail(resendKey, safeType, safeTitle, safeDetails, createdAt).catch(console.error)
+    await sendFeedbackEmail(resendKey, safeType, safeTitle, safeDetails, createdAt).catch(console.error)
 
     return NextResponse.json({ id: result?.id, success: true }, { status: 201 })
   } catch (err) {
