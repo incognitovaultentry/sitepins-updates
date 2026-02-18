@@ -201,7 +201,7 @@ export default function FeedbackBoard() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Feedback Board</h1>
           <p className="mt-1 text-slate-500 dark:text-slate-400 text-sm">
@@ -256,7 +256,7 @@ export default function FeedbackBoard() {
                   </span>
                 </div>
 
-                <div className="px-3 pb-3 space-y-2 max-h-[600px] overflow-y-auto">
+                <div className="px-3 pb-3 space-y-2 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
                   {state.items.length === 0 && !state.loading ? (
                     <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8">No items yet</p>
                   ) : (
