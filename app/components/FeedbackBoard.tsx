@@ -17,6 +17,7 @@ interface Feedback {
 
 interface ColumnState {
   items: Feedback[]
+  total: number
   offset: number
   hasMore: boolean
   loading: boolean
@@ -34,7 +35,7 @@ const PAGE_SIZE = 10
 const LOCALSTORAGE_KEY = 'sitepins-upvoted'
 
 const defaultColumnState = (): ColumnState => ({
-  items: [], offset: 0, hasMore: true, loading: false, initialized: false,
+  items: [], total: 0, offset: 0, hasMore: true, loading: false, initialized: false,
 })
 
 export default function FeedbackBoard() {
@@ -74,6 +75,7 @@ export default function FeedbackBoard() {
 
       const data = await res.json() as {
         feedback: Feedback[]
+        total: number
         hasMore: boolean
         setup_required?: boolean
       }
@@ -88,6 +90,7 @@ export default function FeedbackBoard() {
           ...prev,
           [status]: {
             items: [...existing.items, ...newItems],
+            total: data.total ?? existing.total,
             offset: (explicitOffset ?? existing.offset) + (data.feedback?.length ?? 0),
             hasMore: data.hasMore,
             loading: false,
@@ -178,11 +181,12 @@ export default function FeedbackBoard() {
     setColumns(prev => ({ ...prev, open: { ...defaultColumnState(), loading: true } }))
     const res2 = await fetch(`/api/feedback?status=open&limit=${PAGE_SIZE}&offset=0`)
     if (res2.ok) {
-      const data = await res2.json() as { feedback: Feedback[]; hasMore: boolean }
+      const data = await res2.json() as { feedback: Feedback[]; total: number; hasMore: boolean }
       setColumns(prev => ({
         ...prev,
         open: {
           items: data.feedback ?? [],
+          total: data.total ?? 0,
           offset: data.feedback?.length ?? 0,
           hasMore: data.hasMore,
           loading: false,
@@ -248,7 +252,7 @@ export default function FeedbackBoard() {
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">{col.label}</span>
                   </div>
                   <span className="text-xs font-medium bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-full px-2 py-0.5">
-                    {state.items.length}{state.hasMore ? '+' : ''}
+                    {state.total || state.items.length}
                   </span>
                 </div>
 
