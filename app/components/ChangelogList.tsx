@@ -2,6 +2,7 @@
 
 import type { ChangelogEntry } from '../changelog/page'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import Image from 'next/image'
 
 interface Props {
@@ -74,7 +75,7 @@ export default function ChangelogList({ entries }: Props) {
                     prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
                     prose-code:bg-slate-100 dark:prose-code:bg-slate-700 prose-code:rounded prose-code:px-1 prose-code:text-sm
                     prose-pre:bg-slate-100 dark:prose-pre:bg-slate-700">
-                    <ReactMarkdown>{entry.details}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.details}</ReactMarkdown>
                   </div>
                 </div>
               </div>
