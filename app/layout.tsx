@@ -8,6 +8,10 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Sitepins Roadmap, Feedback and Changelog',
   description: 'Public feedback board and changelog for Sitepins',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+  },
   openGraph: {
     title: 'Sitepins Roadmap, Feedback and Changelog',
     description: 'Share feedback and track what we\'re building',
