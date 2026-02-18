@@ -6,10 +6,10 @@ import Nav from './components/Nav'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Sitepins Updates',
+  title: 'Sitepins Roadmap, Feedback and Changelog',
   description: 'Public feedback board and changelog for Sitepins',
   openGraph: {
-    title: 'Sitepins Updates',
+    title: 'Sitepins Roadmap, Feedback and Changelog',
     description: 'Share feedback and track what we\'re building',
     url: 'https://updates.sitepins.com',
     siteName: 'Sitepins',

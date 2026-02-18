@@ -33,7 +33,7 @@ export default function Nav() {
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
-                Feedback
+                Roadmap
               </Link>
               <Link
                 href="/changelog"
