@@ -14,10 +14,10 @@ pages_build_output_dir = ".vercel/output/static"
 #    Add D1 binding: Variable name = DB, Database = sitepins-updates-db
 # 7. Re-deploy: npm run pages:build && npx wrangler pages deploy .vercel/output/static --project-name=sitepins-updates
 
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "sitepins-updates-db"
-# database_id = "REPLACE_WITH_REAL_UUID"
+[[d1_databases]]
+binding = "DB"
+database_name = "sitepins-updates-db"
+database_id = "b28292a5-7ddd-43f5-91b2-61b77fd24ba5"
 
 [vars]
 # RESEND_API_KEY is set as a secret in the Cloudflare Pages dashboard
