@@ -13,19 +13,7 @@ interface FeedbackRow {
   created_at: string
 }
 
-function getResendKey(): string {
-  // Try process.env first, then Cloudflare's ctx.env for secrets
-  if (process.env.RESEND_API_KEY) return process.env.RESEND_API_KEY
-  try {
-    const ctx = getRequestContext()
-    return (ctx.env as unknown as Record<string, string>).RESEND_API_KEY ?? ''
-  } catch {
-    return ''
-  }
-}
-
-async function sendFeedbackEmail(type: string, title: string, details: string, createdAt: string) {
-  const apiKey = getResendKey()
+async function sendFeedbackEmail(apiKey: string, type: string, title: string, details: string, createdAt: string) {
   if (!apiKey) return
 
   const body = `
@@ -132,7 +120,15 @@ export async function POST(request: NextRequest) {
       'INSERT INTO feedback (title, details, type, status, upvotes, created_at) VALUES (?, ?, ?, ?, ?, ?) RETURNING id'
     ).bind(safeTitle, safeDetails, safeType, 'open', 0, createdAt).first<{ id: number }>()
 
-    sendFeedbackEmail(safeType, safeTitle, safeDetails, createdAt).catch(console.error)
+    // Get API key inside request context BEFORE fire-and-forget
+    let resendKey = process.env.RESEND_API_KEY ?? ''
+    if (!resendKey) {
+      try {
+        const ctx = getRequestContext()
+        resendKey = (ctx.env as unknown as Record<string, string>).RESEND_API_KEY ?? ''
+      } catch {}
+    }
+    sendFeedbackEmail(resendKey, safeType, safeTitle, safeDetails, createdAt).catch(console.error)
 
     return NextResponse.json({ id: result?.id, success: true }, { status: 201 })
   } catch (err) {

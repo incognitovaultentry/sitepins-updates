@@ -59,16 +59,17 @@ export default function FeedbackBoard() {
     } catch {}
   }, [])
 
-  const fetchMore = useCallback(async (status: string) => {
+  const fetchMore = useCallback(async (status: string, explicitOffset?: number) => {
     setColumns(prev => {
       const col = prev[status]
-      if (col.loading || !col.hasMore) return prev
+      if (col.loading || (!col.hasMore && explicitOffset === undefined)) return prev
       return { ...prev, [status]: { ...col, loading: true } }
     })
 
     try {
       const col = columns[status]
-      const res = await fetch(`/api/feedback?status=${status}&limit=${PAGE_SIZE}&offset=${col.offset}`)
+      const offset = explicitOffset ?? col.offset
+      const res = await fetch(`/api/feedback?status=${status}&limit=${PAGE_SIZE}&offset=${offset}`)
       if (!res.ok) return
 
       const data = await res.json() as {
@@ -87,7 +88,7 @@ export default function FeedbackBoard() {
           ...prev,
           [status]: {
             items: [...existing.items, ...newItems],
-            offset: existing.offset + (data.feedback?.length ?? 0),
+            offset: (explicitOffset ?? existing.offset) + (data.feedback?.length ?? 0),
             hasMore: data.hasMore,
             loading: false,
             initialized: true,
@@ -173,9 +174,22 @@ export default function FeedbackBoard() {
     if (!res.ok) throw new Error('Failed to submit')
     setSubmitSuccess(true)
     setTimeout(() => setSubmitSuccess(false), 4000)
-    // Refresh open column
-    setColumns(prev => ({ ...prev, open: defaultColumnState() }))
-    setTimeout(() => fetchMore('open'), 100)
+    // Reset open column and reload from offset 0
+    setColumns(prev => ({ ...prev, open: { ...defaultColumnState(), loading: true } }))
+    const res2 = await fetch(`/api/feedback?status=open&limit=${PAGE_SIZE}&offset=0`)
+    if (res2.ok) {
+      const data = await res2.json() as { feedback: Feedback[]; hasMore: boolean }
+      setColumns(prev => ({
+        ...prev,
+        open: {
+          items: data.feedback ?? [],
+          offset: data.feedback?.length ?? 0,
+          hasMore: data.hasMore,
+          loading: false,
+          initialized: true,
+        },
+      }))
+    }
   }
 
   const allInitialized = COLUMNS.every(c => columns[c.id].initialized)
