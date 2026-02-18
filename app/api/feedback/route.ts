@@ -69,10 +69,10 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       countQuery = `SELECT COUNT(*) as total FROM feedback WHERE status = '${status}'`
-      dataQuery = `SELECT id, title, details, type, status, upvotes, created_at FROM feedback WHERE status = '${status}' ORDER BY upvotes DESC, created_at DESC LIMIT ${limit} OFFSET ${offset}`
+      dataQuery = `SELECT id, title, details, type, status, upvotes, created_at FROM feedback WHERE status = '${status}' ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`
     } else {
       countQuery = `SELECT COUNT(*) as total FROM feedback`
-      dataQuery = `SELECT id, title, details, type, status, upvotes, created_at FROM feedback ORDER BY upvotes DESC, created_at DESC LIMIT ${limit} OFFSET ${offset}`
+      dataQuery = `SELECT id, title, details, type, status, upvotes, created_at FROM feedback ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`
     }
 
     const [countResult, dataResult] = await Promise.all([
