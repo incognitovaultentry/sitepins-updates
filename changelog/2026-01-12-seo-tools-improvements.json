@@ -1,6 +1,8 @@
 {
   "date": "2026-01-12",
-  "title": "📊 SEO Tools Improvements",
-  "tags": ["Improvements"],
+  "title": "SEO Tools Improvements",
+  "tags": [
+    "Improvements"
+  ],
   "details": "We've made adjustments and improvements to our in-app SEO tools:\n\n- ✅ **Slug editing** — Editable straight from the SEO tool\n- ✅ **Link Detection/Analysis** — Inaccurate results patched to display accurate results\n- ✅ **Search Preview** — Redesigned for better alignment and display\n- ✅ **Analysis Summary** — Improved to give better recommendations"
 }

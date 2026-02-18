@@ -1,6 +1,8 @@
 {
   "date": "2026-01-20",
-  "title": "🛎 Minor UX Updates",
-  "tags": ["Improvements"],
+  "title": "Minor UX Updates",
+  "tags": [
+    "Improvements"
+  ],
   "details": "Refined the editing experience for a seamless workflow.\n\n- **Cursor sync** — Your cursor now stays perfectly synced when switching between Rich Text and Markdown. It follows exactly where you left off.\n- **Global Search** — Hit `Cmd + K` (Mac) or `Ctrl + K` (Windows) to find anything instantly across your app."
 }
