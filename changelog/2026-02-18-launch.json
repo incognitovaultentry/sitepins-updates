@@ -1,6 +1,0 @@
-{
-  "date": "2026-02-18",
-  "title": "Sitepins Updates is live 🎉",
-  "tags": ["Launch", "Product"],
-  "details": "We're excited to launch **Sitepins Updates** — our public feedback board and changelog.\n\nHere you can:\n- **Submit feedback** — bugs, feature requests, improvements, or anything on your mind\n- **Upvote** ideas you care about so we prioritize them\n- **Track progress** across our Kanban board (Open → Planned → Building Now → Completed)\n- **Stay informed** with this changelog as we ship new features\n\n## What's next?\n\nWe're actively building based on your feedback. A few things already in progress:\n\n- **Custom field types** — define your own schemas beyond the defaults\n- **GitHub Actions integration** — auto-trigger builds on publish\n- **Dark mode** for the editor\n\nThank you for being part of the Sitepins community. Your feedback shapes what we build. 🙏"
-}

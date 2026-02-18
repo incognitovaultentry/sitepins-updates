@@ -1,0 +1,6 @@
+{
+  "date": "2025-11-27",
+  "title": "The Workflow & Design Update",
+  "tags": ["Features", "Improvements"],
+  "details": "This update focuses on workspace organization and a refined visual experience to help you manage website content more efficiently.\n\n## 🎨 Interface Updates\n- **Full Dark Mode** — Dark mode is now available across the entire platform\n- **UI & UX Improvements** — Updates for a more consistent and responsive editing experience\n- **Redesigned Sites Dashboard** — Restructured for better navigation and clarity\n\n## 📂 Content & Organization\n- **Folder Management** — Create and delete folders within the content section to better structure your data\n- **Archive Functionality** — Archive projects and organizations to manage active workspaces\n- **Advanced File Sorting** — New sorting options for more precise control over file display\n\n## 🛠️ Data & Configuration\n- **Visual Schema Fields** — New visual tools to create and configure custom schema fields directly in the UI"
+}
