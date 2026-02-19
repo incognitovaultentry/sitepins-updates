@@ -256,7 +256,7 @@ export default function FeedbackBoard() {
                   </span>
                 </div>
 
-                <div className="px-3 pb-3 space-y-2 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
+                <div className="px-3 pb-3 space-y-2 max-h-[600px] sm:max-h-[800px] overflow-y-auto">
                   {state.items.length === 0 && !state.loading ? (
                     <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8">No items yet</p>
                   ) : (
