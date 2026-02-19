@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react'
 
 const STATUSES = ['open', 'planned', 'building', 'completed'] as const
-const FEEDBACK_TYPES = ['Feature Request', 'Bug', 'Improvement', 'Other'] as const
 type Status = typeof STATUSES[number]
 
 const STATUS_LABELS: Record<Status, string> = {
@@ -41,7 +40,6 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState<number | null>(null)
   const [deleting, setDeleting] = useState<number | null>(null)
   const [search, setSearch] = useState('')
-  const [showAddFeedback, setShowAddFeedback] = useState(false)
   const [showAddChangelog, setShowAddChangelog] = useState(false)
 
   // Check auth on mount
@@ -182,12 +180,6 @@ export default function AdminPage() {
             + Changelog
           </button>
           <button
-            onClick={() => setShowAddFeedback(true)}
-            className="px-4 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
-          >
-            + Feedback
-          </button>
-          <button
             onClick={handleLogout}
             className="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
@@ -291,87 +283,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Add Feedback Modal */}
-      {showAddFeedback && <AddFeedbackModal onClose={() => { setShowAddFeedback(false); loadFeedback(); }} />}
-
       {/* Add Changelog Modal */}
       {showAddChangelog && <AddChangelogModal onClose={() => setShowAddChangelog(false)} />}
-    </div>
-  )
-}
-
-function AddFeedbackModal({ onClose }: { onClose: () => void }) {
-  const [title, setTitle] = useState('')
-  const [details, setDetails] = useState('')
-  const [type, setType] = useState<string>('Feature Request')
-  const [status, setStatus] = useState<Status>('open')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!title.trim()) { setError('Title required'); return }
-    setSubmitting(true)
-    setError('')
-    try {
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), details: details.trim(), type }),
-      })
-      if (!res.ok) throw new Error('Failed')
-      
-      // Update status if not open
-      if (status !== 'open') {
-        const data = await res.json() as { id: number }
-        await fetch(`/api/admin/feedback/${data.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status }),
-        })
-      }
-      onClose()
-    } catch {
-      setError('Failed to add feedback')
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="w-full max-w-lg bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Add Feedback</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">×</button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Type</label>
-            <select value={type} onChange={e => setType(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm">
-              {FEEDBACK_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Status</label>
-            <select value={status} onChange={e => setStatus(e.target.value as Status)} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm">
-              {STATUSES.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Title *</label>
-            <input type="text" value={title} onChange={e => setTitle(e.target.value)} maxLength={120} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Details</label>
-            <textarea value={details} onChange={e => setDetails(e.target.value)} rows={6} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm resize-y" />
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg">Cancel</button>
-            <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg disabled:opacity-50">{submitting ? 'Adding…' : 'Add Feedback'}</button>
-          </div>
-        </form>
-      </div>
     </div>
   )
 }
