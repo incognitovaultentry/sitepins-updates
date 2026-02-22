@@ -56,9 +56,8 @@ export default function Nav() {
 
           {/* Logo */}
           <a href="https://sitepins.com" className="flex items-center hover:opacity-80 transition-opacity shrink-0">
-            <div className="bg-slate-900 dark:bg-transparent px-2 py-1 rounded-lg">
-              <Image src="/logo.svg" alt="Sitepins" width={80} height={25} priority />
-            </div>
+            <Image src="/logo-dark.svg" alt="Sitepins" width={80} height={25} priority className="dark:hidden" />
+            <Image src="/logo-light.svg" alt="Sitepins" width={80} height={25} priority className="hidden dark:block" />
           </a>
 
           {/* Internal nav — always visible */}

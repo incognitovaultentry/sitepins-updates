@@ -241,11 +241,11 @@ export default function FeedbackBoard() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-stretch">
           {COLUMNS.map(col => {
             const state = columns[col.id]
             return (
-              <div key={col.id} className={`bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-t-4 ${col.color} overflow-hidden`}>
+              <div key={col.id} className={`bg-slate-100 dark:bg-slate-800/50 rounded-2xl border-t-4 ${col.color} overflow-hidden flex flex-col`}>
                 <div className="px-4 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span>{col.emoji}</span>
@@ -256,7 +256,7 @@ export default function FeedbackBoard() {
                   </span>
                 </div>
 
-                <div className="px-3 pb-3 space-y-2 max-h-[600px] sm:max-h-[800px] overflow-y-auto">
+                <div className="px-3 pb-3 space-y-2 max-h-[600px] sm:max-h-[800px] overflow-y-auto flex-1">
                   {state.items.length === 0 && !state.loading ? (
                     <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8">No items yet</p>
                   ) : (

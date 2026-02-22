@@ -20,6 +20,16 @@ const STATUS_COLORS: Record<Status, string> = {
   completed: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
 }
 
+interface Changelog {
+  filename: string
+  sha: string
+  title: string
+  date: string
+  tags: string[]
+  image: string
+  content: string
+}
+
 interface Feedback {
   id: number
   title: string
@@ -43,6 +53,11 @@ export default function AdminPage() {
   const [search, setSearch] = useState('')
   const [showAddFeedback, setShowAddFeedback] = useState(false)
   const [showAddChangelog, setShowAddChangelog] = useState(false)
+  const [activeTab, setActiveTab] = useState<'feedback' | 'changelog'>('feedback')
+  const [changelogs, setChangelogs] = useState<Changelog[]>([])
+  const [changelogLoading, setChangelogLoading] = useState(false)
+  const [editingChangelog, setEditingChangelog] = useState<Changelog | null>(null)
+  const [deletingChangelog, setDeletingChangelog] = useState<string | null>(null)
 
   // Check auth on mount
   useEffect(() => {
@@ -64,9 +79,24 @@ export default function AdminPage() {
     }
   }, [])
 
+  const loadChangelogs = useCallback(async () => {
+    setChangelogLoading(true)
+    try {
+      const res = await fetch('/api/admin/changelog')
+      if (res.status === 401) { setAuthed(false); return }
+      const data = await res.json() as { changelogs: Changelog[] }
+      setChangelogs(data.changelogs ?? [])
+    } finally {
+      setChangelogLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    if (authed) loadFeedback()
-  }, [authed, loadFeedback])
+    if (authed) {
+      loadFeedback()
+      loadChangelogs()
+    }
+  }, [authed, loadFeedback, loadChangelogs])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -118,6 +148,17 @@ export default function AdminPage() {
       setFeedback(prev => prev.filter(f => f.id !== id))
     } finally {
       setDeleting(null)
+    }
+  }
+
+  async function handleDeleteChangelog(filename: string, title: string) {
+    if (!confirm(`Delete changelog "${title}"? This cannot be undone.`)) return
+    setDeletingChangelog(filename)
+    try {
+      await fetch(`/api/admin/changelog/${encodeURIComponent(filename)}`, { method: 'DELETE' })
+      setChangelogs(prev => prev.filter(c => c.filename !== filename))
+    } finally {
+      setDeletingChangelog(null)
     }
   }
 
@@ -196,106 +237,191 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search…"
-          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-48"
-        />
-        <div className="flex flex-wrap gap-1">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-          >
-            All ({feedback.length})
-          </button>
-          {STATUSES.map(s => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === s ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-            >
-              {STATUS_LABELS[s].split(' ')[1]} ({feedback.filter(f => f.status === s).length})
-            </button>
-          ))}
-        </div>
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-slate-200 dark:border-slate-700">
+        <button
+          onClick={() => setActiveTab('feedback')}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'feedback' ? 'border-blue-500 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          📬 Feedback ({feedback.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('changelog')}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'changelog' ? 'border-purple-500 text-purple-600 dark:text-purple-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          📋 Changelog ({changelogs.length})
+        </button>
       </div>
 
-      {/* Table */}
-      {loading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700">
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-8">#</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Title</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-28">Type</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-10">👍</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-44">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-16"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-12 text-slate-400">No items found</td>
-                </tr>
-              ) : filtered.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                  <td className="px-4 py-3 text-slate-400 text-xs">{item.id}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-slate-900 dark:text-white leading-snug">{item.title}</div>
-                    {item.details && (
-                      <div className="text-xs text-slate-400 mt-0.5 line-clamp-1">{item.details}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{item.type}</td>
-                  <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{item.upvotes}</td>
-                  <td className="px-4 py-3">
-                    <div className="relative">
-                      <select
-                        value={item.status}
-                        disabled={updating === item.id}
-                        onChange={e => handleStatusChange(item.id, e.target.value as Status)}
-                        className={`appearance-none pl-2 pr-6 py-1 rounded-md text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${STATUS_COLORS[item.status]} ${updating === item.id ? 'opacity-50' : ''}`}
-                      >
-                        {STATUSES.map(s => (
-                          <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                        ))}
-                      </select>
-                      {updating === item.id && (
-                        <span className="ml-2 text-xs text-slate-400">saving…</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleDelete(item.id, item.title)}
-                      disabled={deleting === item.id}
-                      className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 transition-colors"
-                    >
-                      {deleting === item.id ? '…' : 'Delete'}
-                    </button>
-                  </td>
-                </tr>
+      {activeTab === 'feedback' && (
+        <>
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search…"
+              className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-48"
+            />
+            <div className="flex flex-wrap gap-1">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                All ({feedback.length})
+              </button>
+              {STATUSES.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFilter(s)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${filter === s ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900' : 'border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                >
+                  {STATUS_LABELS[s].split(' ')[1]} ({feedback.filter(f => f.status === s).length})
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </div>
+
+          {/* Feedback Table */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-8">#</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Title</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-28">Type</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-10">👍</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-44">Status</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-16"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-12 text-slate-400">No items found</td>
+                    </tr>
+                  ) : filtered.map(item => (
+                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                      <td className="px-4 py-3 text-slate-400 text-xs">{item.id}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-900 dark:text-white leading-snug">{item.title}</div>
+                        {item.details && (
+                          <div className="text-xs text-slate-400 mt-0.5 line-clamp-1">{item.details}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{item.type}</td>
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400">{item.upvotes}</td>
+                      <td className="px-4 py-3">
+                        <div className="relative">
+                          <select
+                            value={item.status}
+                            disabled={updating === item.id}
+                            onChange={e => handleStatusChange(item.id, e.target.value as Status)}
+                            className={`appearance-none pl-2 pr-6 py-1 rounded-md text-xs font-medium border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 ${STATUS_COLORS[item.status]} ${updating === item.id ? 'opacity-50' : ''}`}
+                          >
+                            {STATUSES.map(s => (
+                              <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                            ))}
+                          </select>
+                          {updating === item.id && (
+                            <span className="ml-2 text-xs text-slate-400">saving…</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={() => handleDelete(item.id, item.title)}
+                          disabled={deleting === item.id}
+                          className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 transition-colors"
+                        >
+                          {deleting === item.id ? '…' : 'Delete'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'changelog' && (
+        <>
+          {changelogLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="animate-spin w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full" />
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-28">Date</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400">Title</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-40">Tags</th>
+                    <th className="text-left px-4 py-3 font-medium text-slate-500 dark:text-slate-400 w-28">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                  {changelogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center py-12 text-slate-400">No changelog entries</td>
+                    </tr>
+                  ) : changelogs.map(item => (
+                    <tr key={item.filename} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                      <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">{item.date}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-900 dark:text-white leading-snug">{item.title}</div>
+                        <div className="text-xs text-slate-400 mt-0.5 line-clamp-1">{item.content.slice(0, 100)}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {item.tags.map(t => (
+                            <span key={t} className="px-1.5 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">{t}</span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setEditingChangelog(item)}
+                            className="text-xs text-blue-500 hover:text-blue-700 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteChangelog(item.filename, item.title)}
+                            disabled={deletingChangelog === item.filename}
+                            className="text-xs text-red-400 hover:text-red-600 disabled:opacity-50 transition-colors"
+                          >
+                            {deletingChangelog === item.filename ? '…' : 'Delete'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       {/* Add Feedback Modal */}
       {showAddFeedback && <AddFeedbackModal onClose={() => { setShowAddFeedback(false); loadFeedback(); }} />}
 
       {/* Add Changelog Modal */}
-      {showAddChangelog && <AddChangelogModal onClose={() => setShowAddChangelog(false)} />}
+      {showAddChangelog && <AddChangelogModal onClose={() => { setShowAddChangelog(false); loadChangelogs(); }} />}
+
+      {/* Edit Changelog Modal */}
+      {editingChangelog && <EditChangelogModal changelog={editingChangelog} onClose={() => { setEditingChangelog(null); loadChangelogs(); }} />}
     </div>
   )
 }
@@ -456,6 +582,92 @@ function AddChangelogModal({ onClose }: { onClose: () => void }) {
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg">Cancel</button>
             <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50">{submitting ? 'Creating…' : 'Create Changelog'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function EditChangelogModal({ changelog, onClose }: { changelog: Changelog; onClose: () => void }) {
+  const [title, setTitle] = useState(changelog.title)
+  const [content, setContent] = useState(changelog.content)
+  const [tags, setTags] = useState(changelog.tags.join(', '))
+  const [image, setImage] = useState(changelog.image)
+  const [date, setDate] = useState(changelog.date)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!title.trim() || !content.trim()) { setError('Title and content required'); return }
+    setSubmitting(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/changelog/${encodeURIComponent(changelog.filename)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          content: content.trim(),
+          tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+          image: image.trim() || undefined,
+          date,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setSuccess(true)
+      setTimeout(() => onClose(), 1500)
+    } catch {
+      setError('Failed to update changelog.')
+      setSubmitting(false)
+    }
+  }
+
+  if (success) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-2xl">
+          <div className="text-4xl mb-4">✅</div>
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">Changelog updated!</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="w-full max-w-2xl bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white dark:bg-slate-800 z-10">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Edit Changelog Entry</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-2xl leading-none">×</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Date</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Title *</label>
+            <input type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Tags (comma-separated)</label>
+            <input type="text" value={tags} onChange={e => setTags(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Image URL (optional)</label>
+            <input type="url" value={image} onChange={e => setImage(e.target.value)} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5 text-slate-700 dark:text-slate-300">Content * (Markdown)</label>
+            <textarea value={content} onChange={e => setContent(e.target.value)} rows={12} className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-lg text-sm resize-y font-mono" />
+          </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg">Cancel</button>
+            <button type="submit" disabled={submitting} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50">{submitting ? 'Saving…' : 'Save Changes'}</button>
           </div>
         </form>
       </div>
