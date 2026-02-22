@@ -199,7 +199,7 @@ export default function FeedbackBoard() {
   const allInitialized = COLUMNS.every(c => columns[c.id].initialized)
 
   return (
-    <div>
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
@@ -235,13 +235,13 @@ export default function FeedbackBoard() {
 
       {/* Kanban */}
       {!allInitialized ? (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 flex-1 min-h-0">
           {COLUMNS.map(col => (
-            <div key={col.id} className="bg-slate-100 dark:bg-slate-800 rounded-2xl h-64 animate-pulse" />
+            <div key={col.id} className="bg-slate-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:items-stretch flex-1 min-h-0">
           {COLUMNS.map(col => {
             const state = columns[col.id]
             return (
@@ -256,7 +256,7 @@ export default function FeedbackBoard() {
                   </span>
                 </div>
 
-                <div className="px-3 pb-3 space-y-2 max-h-[600px] sm:max-h-[800px] overflow-y-auto flex-1">
+                <div className="px-3 pb-3 space-y-2 overflow-y-auto flex-1 min-h-0">
                   {state.items.length === 0 && !state.loading ? (
                     <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-8">No items yet</p>
                   ) : (
