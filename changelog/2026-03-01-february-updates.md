@@ -1,6 +1,6 @@
 ---
 date: 2026-03-01
-title: "February Updates"
+title: "February Updates — 2026"
 tags: [Feature, Improvement]
 ---
 
